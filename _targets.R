@@ -141,14 +141,26 @@ list(
     pattern = map(ctg_dirs)
   ),
   tar_target(
+    name = census_by_ctg,
+    command = census |>
+      group_by(norm_veg_dir) |>
+      tar_group(),
+    iteration = "group"
+  ),
+  tar_target(
     name = single_tree_clouds,
     format = "file",
-    command = extract_single_trees(
-      input_ctg = census$census_ctg_dir,
-      x = census$UTM_X,
-      y = census$UTM_Y,
-      out_path = census$single_tree_path
-    ),
-    pattern = map(census)
+    command = {
+      ctg_norm_veg # Referenced so this re-runs when the veg clouds change
+      extract_single_trees(
+        input_ctg = unique(census_by_ctg$norm_veg_dir),
+        trees = census_by_ctg,
+        out_template = file.path(
+          here("data/processed/single_trees"),
+          "s{STEM_TAG}_t{TREE_TAG}_c{CTFS_CENSUS}"
+        )
+      )
+    },
+    pattern = map(census_by_ctg)
   )
 )

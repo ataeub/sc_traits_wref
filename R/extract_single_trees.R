@@ -1,20 +1,22 @@
 extract_single_trees <- function(
   input_ctg,
-  x,
-  y,
-  out_path
+  trees,
+  out_template,
+  radius = 20
 ) {
   ctg <- lidR::readLAScatalog(input_ctg)
 
+  # Columns of `trees` are kept as attributes so that `out_template`
+  # placeholders like {STEM_TAG} resolve per tree
   pts <- sf::st_as_sf(
-    data.frame(x = x, y = y),
-    coords = c("x", "y"),
+    trees,
+    coords = c("UTM_X", "UTM_Y"),
     crs = sf::st_crs(ctg)
   )
 
-  opt_output_files(ctg) <- out_path
-  opt_laz_compression(ctg) <- TRUE
+  lidR::opt_output_files(ctg) <- out_template
+  lidR::opt_laz_compression(ctg) <- TRUE
 
-  out <- clip_roi(ctg, pts, radius = 20)
+  out <- lidR::clip_roi(ctg, pts, radius = radius)
   out$filename
 }
