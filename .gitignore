@@ -1,0 +1,19 @@
+# Data: structure is created by the data_dirs target
+data/
+
+# targets pipeline
+_targets/*
+
+# R
+.Rhistory
+.RData
+.Rproj.user/
+.Ruserdata
+Rplots.pdf
+*.Rcheck/
+renv/library/
+
+# OS / editor
+.DS_Store
+Thumbs.db
+.vscode/
