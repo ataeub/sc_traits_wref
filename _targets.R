@@ -58,13 +58,7 @@ list(
         ),
         dtm_dir = here(
           "data/raw/dtm/NEON.D16.WREF.DP3.30024.001.2023-06.basic.20261030T121746Z.RELEASE-2026"
-        ),
-        prep_dtm_path = here("data/processed/dtm.vrt"),
-        norm_clouds_dir = here("data/processed/norm"),
-        norm_clouds_path = here("data/processed/norm/{*}_norm"),
-        norm_veg_clouds_dir = here("data/processed/norm_veg"),
-        norm_veg_clouds_path = here("data/processed/norm_veg/{*}_veg"),
-        single_tree_clouds_dir = here("data/processed/single_trees")
+        )
       )
     }
   ),
@@ -84,13 +78,6 @@ list(
     name = census,
     command = {
       bind_rows(census_2011, census_2016, census_2021) |>
-        mutate(
-          single_tree_path = fs::path(
-            parameters$single_tree_clouds_dir,
-            glue("s{STEM_TAG}_t{TREE_TAG}_c{CTFS_CENSUS}")
-          ),
-          dtm_dir = parameters$dtm_dir
-        ) |>
         rowwise() |>
         mutate(
           census_ctg_dir = {
@@ -104,8 +91,29 @@ list(
           }
         ) |>
         ungroup() |>
+        mutate(
+          norm_dir = here::here(
+            "data/processed/norm",
+            paste0(fs::path_file(census_ctg_dir), "_norm")
+          ),
+          norm_veg_dir = here::here(
+            "data/processed/norm_veg",
+            paste0(fs::path_file(census_ctg_dir), "_norm_veg")
+          ),
+          dtm_dir = parameters$dtm_dir,
+          single_tree_path = fs::path(
+            here("data/processed/single_trees"),
+            glue("s{STEM_TAG}_t{TREE_TAG}_c{CTFS_CENSUS}")
+          )
+        ) |>
         filter(CTFS_CENSUS == 3)
     }
+  ),
+  tar_target(
+    name = ctg_dirs,
+    command = census |>
+      distinct(census_ctg_dir, norm_dir, norm_veg_dir) |>
+      filter(!is.na(census_ctg_dir))
   ),
   tar_terra_rast(
     name = dtm,
@@ -114,52 +122,23 @@ list(
         parameters$dtm_dir,
         glob = "*.tif"
       )
-      terra::vrt(dtm_files, parameters$prep_dtm_path, overwrite = TRUE)
+      terra::vrt(dtm_files, here("data/processed/dtm.vrt"), overwrite = TRUE)
     }
   ),
   tar_target(
     name = ctg_norm,
     format = "file",
-    command = {
-      ctg <- readLAScatalog(parameters$clouds_2021_dir)
-      opt_chunk_buffer(ctg) <- 1
-      opt_chunk_size(ctg) <- 0
-      opt_laz_compression(ctg) <- TRUE
-      opt_output_files(ctg) <- parameters$norm_clouds_path
-      out <- normalize_height(ctg, dtm)
-      out$filename
-    }
+    command = normalize_ctg(ctg_dirs$census_ctg_dir, ctg_dirs$norm_dir, dtm),
+    pattern = map(ctg_dirs)
   ),
   tar_target(
     name = ctg_norm_veg,
     format = "file",
     command = {
-      ctg_norm <- readLAScatalog(parameters$norm_clouds_dir)
-      opt_filter(ctg_norm) <- "-keep_class 3 4 5"
-      # Classification filtering is a per-point operation with no need for
-      # neighbouring context. catalog_apply() (unlike catalog_map()) does not
-      # crop the buffer before writing, so leaving the default 30 m buffer
-      # made each written tile bleed into its neighbour, producing genuinely
-      # overlapping output tiles.
-      opt_chunk_buffer(ctg_norm) <- 0
-      opt_laz_compression(ctg_norm) <- TRUE
-      opt_output_files(ctg_norm) <- parameters$norm_veg_clouds_path
-      select_veg <- function(cluster) {
-        las <- readLAS(cluster) # applies the -keep_class filter
-        if (lidR::is.empty(las)) {
-          return(NULL)
-        }
-        las # lidR writes it to opt_output_files
-      }
-      opt <- options(lidR.progress = FALSE)
-      on.exit(options(opt))
-      out <- catalog_apply(
-        ctg_norm,
-        select_veg,
-        .options = list(automerge = TRUE)
-      )
-      out$filename
-    }
+      ctg_norm # Referenced so this target re-runs when normalization changes
+      filter_veg_ctg(ctg_dirs$norm_dir, ctg_dirs$norm_veg_dir)
+    },
+    pattern = map(ctg_dirs)
   ),
   tar_target(
     name = single_tree_clouds,

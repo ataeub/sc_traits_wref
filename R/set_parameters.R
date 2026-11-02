@@ -5,13 +5,7 @@ set_parameters <- function(
   clouds_2011_dir,
   clouds_2016_dir,
   clouds_2021_dir,
-  dtm_dir,
-  prep_dtm_path,
-  norm_clouds_dir,
-  norm_clouds_path,
-  norm_veg_clouds_dir,
-  norm_veg_clouds_path,
-  single_tree_clouds_dir
+  dtm_dir
 ) {
   parameters <- as.list(environment())
   parameters
