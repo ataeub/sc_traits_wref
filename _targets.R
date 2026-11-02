@@ -54,10 +54,10 @@ list(
         clouds_2011_dir = NA_character_,
         clouds_2016_dir = NA_character_,
         clouds_2021_dir = here(
-          "data/raw/NEON.D16.WREF.DP1.30003.001.2021-07.basic.20261026T180824Z.RELEASE-2026"
+          "data/raw/als_clouds/NEON.D16.WREF.DP1.30003.001.2021-07.basic.20261026T180824Z.RELEASE-2026"
         ),
         dtm_dir = here(
-          "data/raw/NEON.D16.WREF.DP3.30024.001.2023-06.basic.20261030T121746Z.RELEASE-2026"
+          "data/raw/dtm/NEON.D16.WREF.DP3.30024.001.2023-06.basic.20261030T121746Z.RELEASE-2026"
         ),
         prep_dtm_path = here("data/processed/dtm.vrt"),
         norm_clouds_dir = here("data/processed/norm"),
