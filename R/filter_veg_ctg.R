@@ -17,5 +17,9 @@ filter_veg_ctg <- function(norm_dir, norm_veg_dir) {
   opt <- options(lidR.progress = FALSE)
   on.exit(options(opt))
   out <- lidR::catalog_apply(ctg, select_veg, .options = list(automerge = TRUE))
+  # `rlas::writelax` makes the later `lidR::clip_roi` extremely fast compared to
+  # without it.
+  # Per writelax() handles one file at a time
+  invisible(lapply(out$filename, rlas::writelax))
   out$filename
 }
