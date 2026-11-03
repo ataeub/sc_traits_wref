@@ -151,14 +151,25 @@ list(
       tar_group(),
     iteration = "group"
   ),
+  # Temporary target with subset of census_by_ctg to test single tree extraction
+  # dataset
+  # TODO: Remove this target and use census_by_ctg when ready to run on full
+  tar_target(
+    name = census_by_ctg_subset,
+    command = census_by_ctg |>
+      sample_n(10) |>
+      group_by(norm_veg_dir) |>
+      tar_group(),
+    iteration = "group"
+  ),
   tar_target(
     name = single_tree_clouds,
     format = "file",
     command = {
       ctg_norm_veg # Referenced so this re-runs when the veg clouds change
       extract_single_trees(
-        input_ctg = unique(census_by_ctg$norm_veg_dir),
-        trees = census_by_ctg,
+        input_ctg = unique(census_by_ctg_subset$norm_veg_dir),
+        trees = census_by_ctg_subset,
         out_template = file.path(
           here("data/processed/single_trees"),
           "s{STEM_TAG}_t{TREE_TAG}_c{CTFS_CENSUS}"
@@ -167,7 +178,8 @@ list(
         voxel_res = parameters$voxel_res
       )
     },
-    pattern = map(census_by_ctg)
+    # TODO: Remove the subset target and use census_by_ctg when ready to run on full dataset
+    pattern = map(census_by_ctg_subset)
   ),
   tar_target(
     name = boxdim_enl,
@@ -184,7 +196,8 @@ list(
   tar_target(
     name = census_with_results,
     command = {
-      census_by_ctg |>
+      # TODO: Remove the subset target and use census_by_ctg when ready to run on full dataset
+      census_by_ctg_subset |>
         ungroup() |>
         dplyr::mutate(
           cloud_path = fs::path_norm(paste0(single_tree_path, ".laz"))
