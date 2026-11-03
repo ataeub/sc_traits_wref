@@ -83,20 +83,12 @@ list(
     name = census,
     command = {
       bind_rows(census_2011, census_2016, census_2021) |>
-        rowwise() |>
         mutate(
-          census_ctg_dir = {
-            if (CTFS_CENSUS == 1) {
-              parameters$clouds_2011_dir
-            } else if (CTFS_CENSUS == 2) {
-              parameters$clouds_2016_dir
-            } else if (CTFS_CENSUS == 3) {
-              parameters$clouds_2021_dir
-            }
-          }
-        ) |>
-        ungroup() |>
-        mutate(
+          census_ctg_dir = case_when(
+            CTFS_CENSUS == 1 ~ parameters$clouds_2011_dir,
+            CTFS_CENSUS == 2 ~ parameters$clouds_2016_dir,
+            CTFS_CENSUS == 3 ~ parameters$clouds_2021_dir
+          ),
           norm_dir = here::here(
             "data/processed/norm",
             paste0(fs::path_file(census_ctg_dir), "_norm")
@@ -149,7 +141,7 @@ list(
     name = census_by_ctg,
     command = census |>
       group_by(norm_veg_dir) |>
-      tar_group(),
+      targets::tar_group(),
     iteration = "group"
   ),
   # Temporary target with subset of census_by_ctg to test single tree extraction
@@ -163,7 +155,7 @@ list(
     name = census_by_ctg_subset,
     command = census_subset |>
       group_by(norm_veg_dir) |>
-      tar_group(),
+      targets::tar_group(),
     iteration = "group"
   ),
   tar_target(
