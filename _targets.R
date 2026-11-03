@@ -11,6 +11,7 @@ tar_option_set(
     "tibble",
     "lidR",
     "terra",
+    "targets",
     "sf"
   ),
   controller = crew::crew_controller_local(workers = 6)
