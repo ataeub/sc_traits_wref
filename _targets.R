@@ -197,18 +197,17 @@ list(
         boxdim_t = parameters$boxdim_t,
         enl_layer_size = parameters$enl_layer_size
       )
-      dplyr::bind_cols(census_subset, dplyr::select(metrics, -cloud_path))
+      plot_path <- save_plt(
+        dplyr::bind_cols(census_subset, metrics),
+        here("data/results/figures/structure_plots")
+      )
+      census_subset |>
+        dplyr::bind_cols(
+          dplyr::select(metrics, -cloud_path, -boxdim_plot, -enl_plot)
+        ) |>
+        dplyr::mutate(plot_path = as.character(plot_path))
     },
     # TODO: Map over census instead of the subset when ready to run on full dataset
     pattern = map(census_subset)
-  ),
-  tar_target(
-    name = plots,
-    command = save_plt(
-      census_with_results,
-      here("data/results/figures/structure_plots")
-    ),
-    pattern = map(census_with_results),
-    format = "file"
   )
 )
