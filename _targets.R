@@ -211,38 +211,28 @@ list(
     pattern = map(census_by_chm_subset)
   ),
   tar_target(
+    name = census_chunks,
+    command = census_subset |>
+      dplyr::arrange(single_tree_path) |>
+      dplyr::mutate(chunk = ceiling(dplyr::row_number() / 50)) |>
+      dplyr::group_by(chunk) |>
+      targets::tar_group(),
+    iteration = "group"
+  ),
+  tar_target(
     name = census_with_results,
     command = {
       single_tree_clouds # Referenced so the clouds exist before metrics run
-      chm_row <- chm_metrics |>
-        dplyr::filter(single_tree_path == census_subset$single_tree_path) |>
-        dplyr::select(single_tree_path, dplyr::starts_with("chm_"), -chm_dir)
-      metrics <- calculate_cloud_metrics(
-        cloud_path = census_subset$single_tree_path,
-        plot_title = fs::path_ext_remove(
-          fs::path_file(census_subset$single_tree_path)
-        ),
+      process_tree_chunk(
+        trees = census_chunks,
+        chm_metrics = chm_metrics,
         vox_res = parameters$voxel_res,
         boxdim_t = parameters$boxdim_t,
-        enl_layer_size = parameters$enl_layer_size
+        enl_layer_size = parameters$enl_layer_size,
+        plot_dir = here("data/results/figures/structure_plots")
       )
-      plot_path <- save_plt(
-        census_subset |>
-          dplyr::bind_cols(metrics) |>
-          dplyr::left_join(chm_row, by = "single_tree_path"),
-        here("data/results/figures/structure_plots")
-      )
-      census_subset |>
-        dplyr::bind_cols(
-          dplyr::select(metrics, -cloud_path, -boxdim_plot, -enl_plot)
-        ) |>
-        dplyr::left_join(
-          dplyr::select(chm_row, -chm_plot),
-          by = "single_tree_path"
-        ) |>
-        dplyr::mutate(plot_path = as.character(plot_path))
     },
-    # TODO: Map over census instead of the subset when ready to run on full dataset
-    pattern = map(census_subset)
+    # TODO: Build the chunks from census instead of the subset for the full run
+    pattern = map(census_chunks)
   )
 )
