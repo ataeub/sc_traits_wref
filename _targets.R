@@ -60,7 +60,9 @@ list(
           "data/raw/dtm/NEON.D16.WREF.DP3.30024.001.2023-06.basic.20261030T121746Z.RELEASE-2026"
         ),
         ln_radius = 20,
-        voxel_res = 1
+        voxel_res = 1,
+        boxdim_t = 2,
+        enl_layer_size = 5
       )
     }
   ),
@@ -166,5 +168,31 @@ list(
       )
     },
     pattern = map(census_by_ctg)
+  ),
+  tar_target(
+    name = boxdim_enl,
+    command = {
+      calculate_cloud_metrics(
+        cloud_path = single_tree_clouds,
+        plot_title = fs::path_ext_remove(fs::path_file(single_tree_clouds)),
+        boxdim_t = parameters$boxdim_t,
+        enl_layer_size = parameters$enl_layer_size
+      )
+    },
+    pattern = map(single_tree_clouds)
+  ),
+  tar_target(
+    name = census_with_results,
+    command = {
+      census_by_ctg |>
+        ungroup() |>
+        dplyr::mutate(
+          cloud_path = fs::path_norm(paste0(single_tree_path, ".laz"))
+        ) |>
+        dplyr::left_join(
+          boxdim_enl |> dplyr::mutate(cloud_path = fs::path_norm(cloud_path)),
+          by = "cloud_path"
+        )
+    }
   )
 )
