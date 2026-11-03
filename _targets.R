@@ -58,7 +58,9 @@ list(
         ),
         dtm_dir = here(
           "data/raw/dtm/NEON.D16.WREF.DP3.30024.001.2023-06.basic.20261030T121746Z.RELEASE-2026"
-        )
+        ),
+        ln_radius = 20,
+        voxel_res = 1
       )
     }
   ),
@@ -158,7 +160,9 @@ list(
         out_template = file.path(
           here("data/processed/single_trees"),
           "s{STEM_TAG}_t{TREE_TAG}_c{CTFS_CENSUS}"
-        )
+        ),
+        radius = parameters$ln_radius,
+        voxel_res = parameters$voxel_res
       )
     },
     pattern = map(census_by_ctg)

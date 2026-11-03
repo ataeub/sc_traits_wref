@@ -2,7 +2,8 @@ extract_single_trees <- function(
   input_ctg,
   trees,
   out_template,
-  radius = 20
+  radius,
+  voxel_res = NULL
 ) {
   ctg <- lidR::readLAScatalog(input_ctg)
 
@@ -18,5 +19,18 @@ extract_single_trees <- function(
   lidR::opt_laz_compression(ctg) <- TRUE
 
   out <- lidR::clip_roi(ctg, pts, radius = radius)
-  out$filename
+  files <- out$filename
+
+  # Voxelize each clipped tree in place when a resolution is supplied
+  if (!is.null(voxel_res)) {
+    for (f in files) {
+      las <- lidR::readLAS(f)
+      if (lidR::is.empty(las)) {
+        next
+      }
+      lidR::writeLAS(lidR::voxelize_points(las, voxel_res), f)
+    }
+  }
+
+  fs::path(files)
 }
