@@ -51,7 +51,13 @@ list(
           "data/raw/tree_census/wfdp_Tree_CTFS_Census_3_20260416.csv"
         ),
 
-        # These are not available on NEON (likely non-existing)
+        chm_2011_dir = NA_character_,
+        chm_2016_dir = NA_character_,
+        chm_2021_dir = here(
+          "data/raw/chm/NEON.D16.WREF.DP3.30015.001.2021-07.basic.20261030T130634Z.RELEASE-2026"
+        ),
+
+        # These first two are not available on NEON (likely non-existing)
         clouds_2011_dir = NA_character_,
         clouds_2016_dir = NA_character_,
         clouds_2021_dir = here(
@@ -60,7 +66,10 @@ list(
         dtm_dir = here(
           "data/raw/dtm/NEON.D16.WREF.DP3.30024.001.2023-06.basic.20261030T121746Z.RELEASE-2026"
         ),
+        
         ln_radius = 20,
+        # Pixels at or below this height count as canopy gaps (openness)
+        chm_gap_height = 2,
         voxel_res = 1,
         boxdim_t = 2,
         enl_layer_size = 5
@@ -88,6 +97,11 @@ list(
             CTFS_CENSUS == 1 ~ parameters$clouds_2011_dir,
             CTFS_CENSUS == 2 ~ parameters$clouds_2016_dir,
             CTFS_CENSUS == 3 ~ parameters$clouds_2021_dir
+          ),
+          chm_dir = case_when(
+            CTFS_CENSUS == 1 ~ parameters$chm_2011_dir,
+            CTFS_CENSUS == 2 ~ parameters$chm_2016_dir,
+            CTFS_CENSUS == 3 ~ parameters$chm_2021_dir
           ),
           norm_dir = here::here(
             "data/processed/norm",
@@ -141,7 +155,7 @@ list(
     name = census_by_ctg,
     command = census |>
       group_by(norm_veg_dir) |>
-      targets::tar_group(),
+      tar_group(),
     iteration = "group"
   ),
   # Temporary target with subset of census_by_ctg to test single tree extraction
@@ -178,9 +192,30 @@ list(
     pattern = map(census_by_ctg_subset)
   ),
   tar_target(
+    name = census_by_chm_subset,
+    command = census_subset |>
+      group_by(chm_dir) |>
+      targets::tar_group(),
+    iteration = "group"
+  ),
+  tar_target(
+    name = chm_metrics,
+    command = calculate_chm_metrics(
+      trees = census_by_chm_subset,
+      chm_dir = unique(census_by_chm_subset$chm_dir),
+      radius = parameters$ln_radius,
+      gap_height = parameters$chm_gap_height
+    ),
+    # TODO: Use a census grouped by chm_dir when ready to run on full dataset
+    pattern = map(census_by_chm_subset)
+  ),
+  tar_target(
     name = census_with_results,
     command = {
       single_tree_clouds # Referenced so the clouds exist before metrics run
+      chm_row <- chm_metrics |>
+        dplyr::filter(single_tree_path == census_subset$single_tree_path) |>
+        dplyr::select(single_tree_path, dplyr::starts_with("chm_"), -chm_dir)
       metrics <- calculate_cloud_metrics(
         cloud_path = census_subset$single_tree_path,
         plot_title = fs::path_ext_remove(
@@ -190,12 +225,18 @@ list(
         enl_layer_size = parameters$enl_layer_size
       )
       plot_path <- save_plt(
-        dplyr::bind_cols(census_subset, metrics),
+        census_subset |>
+          dplyr::bind_cols(metrics) |>
+          dplyr::left_join(chm_row, by = "single_tree_path"),
         here("data/results/figures/structure_plots")
       )
       census_subset |>
         dplyr::bind_cols(
           dplyr::select(metrics, -cloud_path, -boxdim_plot, -enl_plot)
+        ) |>
+        dplyr::left_join(
+          dplyr::select(chm_row, -chm_plot),
+          by = "single_tree_path"
         ) |>
         dplyr::mutate(plot_path = as.character(plot_path))
     },

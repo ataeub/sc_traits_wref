@@ -6,7 +6,11 @@ set_parameters <- function(
   clouds_2016_dir,
   clouds_2021_dir,
   dtm_dir,
+  chm_2011_dir,
+  chm_2016_dir,
+  chm_2021_dir,
   ln_radius,
+  chm_gap_height,
   voxel_res,
   boxdim_t,
   enl_layer_size
