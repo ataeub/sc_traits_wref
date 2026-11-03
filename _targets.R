@@ -164,7 +164,7 @@ list(
   # TODO: Remove these targets and use census_by_ctg when ready to run on full
   tar_target(
     name = census_subset,
-    command = dplyr::sample_n(census, 10)
+    command = dplyr::slice_head(census, n = 100)
   ),
   tar_target(
     name = census_by_ctg_subset,
@@ -222,8 +222,8 @@ list(
         plot_title = fs::path_ext_remove(
           fs::path_file(census_subset$single_tree_path)
         ),
-        boxdim_t = parameters$boxdim_t,
         vox_res = parameters$voxel_res,
+        boxdim_t = parameters$boxdim_t,
         enl_layer_size = parameters$enl_layer_size
       )
       plot_path <- save_plt(
