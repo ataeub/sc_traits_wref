@@ -222,6 +222,7 @@ list(
           fs::path_file(census_subset$single_tree_path)
         ),
         boxdim_t = parameters$boxdim_t,
+        vox_res = parameters$voxel_res,
         enl_layer_size = parameters$enl_layer_size
       )
       plot_path <- save_plt(
