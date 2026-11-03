@@ -29,7 +29,7 @@ list(
         "data/processed/norm",
         "data/processed/norm_veg",
         "data/processed/single_trees",
-        "data/results"
+        "data/results/figures/structure_plots"
       ))
       as.character(fs::dir_create(dirs))
     }
@@ -207,5 +207,14 @@ list(
           by = "cloud_path"
         )
     }
+  ),
+  tar_target(
+    name = plots,
+    command = save_plt(
+      census_with_results,
+      here("data/results/figures/structure_plots")
+    ),
+    pattern = map(census_with_results),
+    format = "file"
   )
 )
