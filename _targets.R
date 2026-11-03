@@ -12,7 +12,8 @@ tar_option_set(
     "lidR",
     "terra",
     "sf"
-  )
+  ),
+  controller = crew::crew_controller_local(workers = 6)
 )
 
 tar_source()
@@ -107,7 +108,7 @@ list(
           dtm_dir = parameters$dtm_dir,
           single_tree_path = fs::path(
             here("data/processed/single_trees"),
-            glue("s{STEM_TAG}_t{TREE_TAG}_c{CTFS_CENSUS}")
+            glue("s{STEM_TAG}_t{TREE_TAG}_c{CTFS_CENSUS}.laz")
           )
         ) |>
         filter(CTFS_CENSUS == 3)
@@ -153,11 +154,14 @@ list(
   ),
   # Temporary target with subset of census_by_ctg to test single tree extraction
   # dataset
-  # TODO: Remove this target and use census_by_ctg when ready to run on full
+  # TODO: Remove these targets and use census_by_ctg when ready to run on full
+  tar_target(
+    name = census_subset,
+    command = dplyr::sample_n(census, 10)
+  ),
   tar_target(
     name = census_by_ctg_subset,
-    command = census_by_ctg |>
-      sample_n(10) |>
+    command = census_subset |>
       group_by(norm_veg_dir) |>
       tar_group(),
     iteration = "group"
@@ -182,31 +186,21 @@ list(
     pattern = map(census_by_ctg_subset)
   ),
   tar_target(
-    name = boxdim_enl,
+    name = census_with_results,
     command = {
-      calculate_cloud_metrics(
-        cloud_path = single_tree_clouds,
-        plot_title = fs::path_ext_remove(fs::path_file(single_tree_clouds)),
+      single_tree_clouds # Referenced so the clouds exist before metrics run
+      metrics <- calculate_cloud_metrics(
+        cloud_path = census_subset$single_tree_path,
+        plot_title = fs::path_ext_remove(
+          fs::path_file(census_subset$single_tree_path)
+        ),
         boxdim_t = parameters$boxdim_t,
         enl_layer_size = parameters$enl_layer_size
       )
+      dplyr::bind_cols(census_subset, dplyr::select(metrics, -cloud_path))
     },
-    pattern = map(single_tree_clouds)
-  ),
-  tar_target(
-    name = census_with_results,
-    command = {
-      # TODO: Remove the subset target and use census_by_ctg when ready to run on full dataset
-      census_by_ctg_subset |>
-        ungroup() |>
-        dplyr::mutate(
-          cloud_path = fs::path_norm(paste0(single_tree_path, ".laz"))
-        ) |>
-        dplyr::left_join(
-          boxdim_enl |> dplyr::mutate(cloud_path = fs::path_norm(cloud_path)),
-          by = "cloud_path"
-        )
-    }
+    # TODO: Map over census instead of the subset when ready to run on full dataset
+    pattern = map(census_subset)
   ),
   tar_target(
     name = plots,
