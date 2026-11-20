@@ -17,6 +17,8 @@ extract_single_trees <- function(
 
   lidR::opt_output_files(ctg) <- out_template
   lidR::opt_laz_compression(ctg) <- TRUE
+  # Progress plots open a graphics device and create Rplots.pdf in workers
+  lidR::opt_progress(ctg) <- FALSE
 
   out <- lidR::clip_roi(ctg, pts, radius = radius)
   files <- out$filename
