@@ -1,6 +1,8 @@
 process_tree_chunk <- function(
   trees,
-  chm_metrics,
+  chm_dir,
+  chm_radius,
+  chm_gap_height,
   vox_res,
   boxdim_t,
   enl_layer_size,
@@ -8,15 +10,23 @@ process_tree_chunk <- function(
 ) {
   trees <- dplyr::select(trees, -dplyr::any_of(c("chunk", "tar_group")))
 
-  # Only the CHM rows for this chunk are needed
-  chm_chunk <- dplyr::semi_join(chm_metrics, trees, by = "single_tree_path")
+  # CHM metrics (incl. plots) are computed per chunk so that plots for the
+  # full census are never held in memory at once
+  chm_chunk <- calculate_chm_metrics(
+    trees = trees,
+    chm_dir = chm_dir,
+    radius = chm_radius,
+    gap_height = chm_gap_height
+  ) |>
+    dplyr::select(single_tree_path, dplyr::starts_with("chm_"), -chm_dir)
 
   lapply(seq_len(nrow(trees)), function(i) {
     tree <- trees[i, ]
 
-    chm_row <- chm_chunk |>
-      dplyr::filter(single_tree_path == tree$single_tree_path) |>
-      dplyr::select(single_tree_path, dplyr::starts_with("chm_"), -chm_dir)
+    chm_row <- dplyr::filter(
+      chm_chunk,
+      single_tree_path == tree$single_tree_path
+    )
 
     metrics <- calculate_cloud_metrics(
       cloud_path = tree$single_tree_path,

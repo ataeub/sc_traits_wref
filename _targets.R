@@ -153,23 +153,14 @@ list(
     pattern = map(ctg_dirs)
   ),
   tar_target(
-    name = census_by_ctg,
+    name = census_chunks,
     command = census |>
-      group_by(norm_veg_dir) |>
-      tar_group(),
-    iteration = "group"
-  ),
-  # Temporary target with subset of census_by_ctg to test single tree extraction
-  # dataset
-  # TODO: Remove these targets and use census_by_ctg when ready to run on full
-  tar_target(
-    name = census_subset,
-    command = dplyr::slice_head(census, n = 100)
-  ),
-  tar_target(
-    name = census_by_ctg_subset,
-    command = census_subset |>
-      group_by(norm_veg_dir) |>
+      dplyr::arrange(norm_veg_dir, chm_dir, single_tree_path) |>
+      dplyr::mutate(
+        chunk = ceiling(dplyr::row_number() / 50),
+        .by = c(norm_veg_dir, chm_dir)
+      ) |>
+      dplyr::group_by(norm_veg_dir, chm_dir, chunk) |>
       targets::tar_group(),
     iteration = "group"
   ),
@@ -179,8 +170,8 @@ list(
     command = {
       ctg_norm_veg # Referenced so this re-runs when the veg clouds change
       extract_single_trees(
-        input_ctg = unique(census_by_ctg_subset$norm_veg_dir),
-        trees = census_by_ctg_subset,
+        input_ctg = unique(census_chunks$norm_veg_dir),
+        trees = census_chunks,
         out_template = file.path(
           here("data/processed/single_trees"),
           "s{STEM_TAG}_t{TREE_TAG}_c{CTFS_CENSUS}"
@@ -189,50 +180,25 @@ list(
         voxel_res = parameters$voxel_res
       )
     },
-    # TODO: Remove the subset target and use census_by_ctg when ready to run on full dataset
-    pattern = map(census_by_ctg_subset)
-  ),
-  tar_target(
-    name = census_by_chm_subset,
-    command = census_subset |>
-      group_by(chm_dir) |>
-      targets::tar_group(),
-    iteration = "group"
-  ),
-  tar_target(
-    name = chm_metrics,
-    command = calculate_chm_metrics(
-      trees = census_by_chm_subset,
-      chm_dir = unique(census_by_chm_subset$chm_dir),
-      radius = parameters$ln_radius,
-      gap_height = parameters$chm_gap_height
-    ),
-    # TODO: Use a census grouped by chm_dir when ready to run on full dataset
-    pattern = map(census_by_chm_subset)
-  ),
-  tar_target(
-    name = census_chunks,
-    command = census_subset |>
-      dplyr::arrange(single_tree_path) |>
-      dplyr::mutate(chunk = ceiling(dplyr::row_number() / 50)) |>
-      dplyr::group_by(chunk) |>
-      targets::tar_group(),
-    iteration = "group"
+    pattern = map(census_chunks)
   ),
   tar_target(
     name = census_with_results,
     command = {
-      single_tree_clouds # Referenced so the clouds exist before metrics run
+      # Branch-aligned with the chunk's clouds so metrics can start as soon as
+      # a chunk is extracted
+      single_tree_clouds
       process_tree_chunk(
         trees = census_chunks,
-        chm_metrics = chm_metrics,
+        chm_dir = unique(census_chunks$chm_dir),
+        chm_radius = parameters$ln_radius,
+        chm_gap_height = parameters$chm_gap_height,
         vox_res = parameters$voxel_res,
         boxdim_t = parameters$boxdim_t,
         enl_layer_size = parameters$enl_layer_size,
         plot_dir = here("data/results/figures/structure_plots")
       )
     },
-    # TODO: Build the chunks from census instead of the subset for the full run
-    pattern = map(census_chunks)
+    pattern = map(census_chunks, single_tree_clouds)
   )
 )
