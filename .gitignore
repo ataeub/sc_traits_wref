@@ -17,3 +17,6 @@ renv/library/
 .DS_Store
 Thumbs.db
 .vscode/
+
+# Misc
+/sandbox
