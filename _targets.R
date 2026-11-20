@@ -3,6 +3,7 @@ library(geotargets)
 
 tar_option_set(
   packages = c(
+    "coi",
     "dplyr",
     "fs",
     "glue",
