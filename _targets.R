@@ -32,6 +32,7 @@ list(
       dirs <- here(c(
         "data/raw/als_clouds",
         "data/raw/dtm",
+        "data/raw/chm",
         "data/raw/tree_census",
         "data/processed/norm",
         "data/processed/norm_veg",
