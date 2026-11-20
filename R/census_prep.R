@@ -31,14 +31,14 @@ tree_census_col_types <- readr::cols(
 )
 
 read_census <- function(file) {
-  data <- read_csv(
+  data <- readr::read_csv(
     file,
     # The exports use the literal text "NULL" (not an empty field) to mark
     # missing values; treat it as NA alongside readr's own defaults.
     na = c("", "NA", "NULL"),
     col_types = tree_census_col_types
   )
-  problems_main <- problems(data)
+  problems_main <- vroom::problems(data)
   attr(data, "problems") <- NULL
 
   # A run of records record an unknown day-of-month as "00"
@@ -51,7 +51,7 @@ read_census <- function(file) {
   # Anything that still fails to parse is a genuine problem (not just an
   # unknown day), recorded in the same shape as readr::problems().
   still_bad <- is.na(parsed_date) & !is.na(raw_date)
-  problems_date <- tibble(
+  problems_date <- tibble::tibble(
     row = which(still_bad),
     col = which(names(data) == "DATE"),
     expected = "date in ISO8601",
