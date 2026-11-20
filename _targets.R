@@ -71,7 +71,7 @@ list(
         dtm_dir = here(
           "data/raw/dtm/NEON.D16.WREF.DP3.30024.001.2023-06.basic.20261030T121746Z.RELEASE-2026"
         ),
-        
+
         ln_radius = 20,
         # Pixels at or below this height count as canopy gaps (openness)
         chm_gap_height = 2,
@@ -205,5 +205,14 @@ list(
       )
     },
     pattern = map(census_chunks, single_tree_clouds)
+  ),
+  tar_target(
+    name = census_with_results_file,
+    command = {
+      out_file <- here("data/results/census_with_results.csv")
+      readr::write_csv(census_with_results, out_file)
+      out_file
+    },
+    format = "file"
   )
 )
