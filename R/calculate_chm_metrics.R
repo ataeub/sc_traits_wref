@@ -4,7 +4,13 @@
 # `chm_plot`). `trees` needs UTM_X/UTM_Y, STEM_TAG, TREE_TAG and CTFS_CENSUS
 # columns; coordinates must be in the CRS of the CHM. Trees without a CHM (NA
 # `chm_dir`) get NA metrics and no plot.
-calculate_chm_metrics <- function(trees, chm_dir, radius, gap_height = 2) {
+calculate_chm_metrics <- function(
+  trees,
+  chm_dir,
+  radius,
+  gap_height = 2,
+  make_plots = TRUE
+) {
   if (is.na(chm_dir)) {
     return(dplyr::mutate(
       trees,
@@ -43,6 +49,9 @@ calculate_chm_metrics <- function(trees, chm_dir, radius, gap_height = 2) {
   pixels_by_tree <- split(vals, factor(vals$ID, levels = seq_len(nrow(trees))))
 
   plots <- lapply(seq_len(nrow(trees)), function(i) {
+    if (!make_plots) {
+      return(NULL)
+    }
     plot_chm(pixels_by_tree[[i]], tree_titles[i], gap_height)
   })
 

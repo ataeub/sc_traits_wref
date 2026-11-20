@@ -19,6 +19,10 @@ tar_option_set(
 
 tar_source()
 
+# Toggle plot saving. Deliberately not part of `parameters`, so changing it
+# only invalidates census_with_results (and downstream), not the structural
+# targets (normalization, single-tree extraction).
+save_plots <- TRUE
 
 list(
   tar_target(
@@ -196,7 +200,8 @@ list(
         vox_res = parameters$voxel_res,
         boxdim_t = parameters$boxdim_t,
         enl_layer_size = parameters$enl_layer_size,
-        plot_dir = here("data/results/figures/structure_plots")
+        plot_dir = here("data/results/figures/structure_plots"),
+        save_plots = save_plots
       )
     },
     pattern = map(census_chunks, single_tree_clouds)

@@ -4,7 +4,8 @@ calculate_cloud_metrics <- function(
   boxdim_t,
   enl_layer_size,
   vox_res = NULL,
-  verbose = TRUE
+  verbose = TRUE,
+  make_plots = TRUE
 ) {
   if (isTRUE(verbose)) {
     message("Processing: ", fs::path_file(cloud_path))
@@ -19,14 +20,14 @@ calculate_cloud_metrics <- function(
     cloud,
     vox_res = vox_res,
     min_box = boxdim_t,
-    plot = TRUE,
+    plot = make_plots,
     plot_title = plot_title
   )
 
   cloud_enl <- coi::enl(
     cloud,
     layer_thickness = enl_layer_size,
-    plot = TRUE,
+    plot = make_plots,
     plot_title = plot_title,
     warnings = FALSE
   )

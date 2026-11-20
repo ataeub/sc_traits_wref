@@ -6,7 +6,8 @@ process_tree_chunk <- function(
   vox_res,
   boxdim_t,
   enl_layer_size,
-  plot_dir
+  plot_dir,
+  save_plots = TRUE
 ) {
   trees <- dplyr::select(trees, -dplyr::any_of(c("chunk", "tar_group")))
 
@@ -16,7 +17,8 @@ process_tree_chunk <- function(
     trees = trees,
     chm_dir = chm_dir,
     radius = chm_radius,
-    gap_height = chm_gap_height
+    gap_height = chm_gap_height,
+    make_plots = save_plots
   ) |>
     dplyr::select(single_tree_path, dplyr::starts_with("chm_"), -chm_dir)
 
@@ -33,15 +35,20 @@ process_tree_chunk <- function(
       plot_title = fs::path_ext_remove(fs::path_file(tree$single_tree_path)),
       vox_res = vox_res,
       boxdim_t = boxdim_t,
-      enl_layer_size = enl_layer_size
+      enl_layer_size = enl_layer_size,
+      make_plots = save_plots
     )
 
-    plot_path <- save_plt(
-      tree |>
-        dplyr::bind_cols(metrics) |>
-        dplyr::left_join(chm_row, by = "single_tree_path"),
-      plot_dir
-    )
+    plot_path <- if (save_plots) {
+      save_plt(
+        tree |>
+          dplyr::bind_cols(metrics) |>
+          dplyr::left_join(chm_row, by = "single_tree_path"),
+        plot_dir
+      )
+    } else {
+      NA_character_
+    }
 
     tree |>
       dplyr::bind_cols(
